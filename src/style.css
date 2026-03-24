@@ -1,0 +1,446 @@
+:root {
+  color-scheme: dark;
+  --bg: #050505;
+  --panel: #080808;
+  --line: #f2f2f2;
+  --muted: #a9a9a9;
+  --p1: #70ff2d;
+  --p2: #ff57da;
+  --neutral: #ffffff;
+  --warn: #ffe600;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--line);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--bg);
+}
+
+.card {
+  background: var(--panel);
+  border: 2px solid var(--line);
+}
+
+/* =========================
+   console layout
+   ========================= */
+/* =========================
+   console layout
+   ========================= */
+
+.player-console {
+  margin: 0.35rem;
+  padding: 0.45rem;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  row-gap: 0.45rem;
+  align-items: stretch;
+}
+
+.player-console.mirrored {
+  transform: rotate(180deg);
+}
+
+.player-1 {
+  color: var(--p1);
+}
+
+.player-2 {
+  color: var(--p2);
+}
+
+.console-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.7rem;
+  align-items: start;
+}
+
+.console-info {
+  min-width: 0;
+}
+
+.console-title {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.console-subtitle {
+  font-size: 0.75rem;
+  color: var(--line);
+}
+
+.console-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(2.8rem, auto));
+  gap: 0.5rem;
+  align-items: start;
+  justify-content: end;
+}
+
+.status-item {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 0.08rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.status-label {
+  font-size: 0.58rem;
+  line-height: 1;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-value {
+  font-size: 0.88rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--line);
+}
+
+/* =========================
+   console controls row
+   ========================= */
+
+.console-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.55rem;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.planet-grid {
+  display: grid;
+  gap: 0.35rem;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.console-mode-stack {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 0.35rem;
+  width: 3rem;
+  align-self: stretch;
+}
+
+.mode-btn {
+  width: 100%;
+  min-height: 0;
+  border: 2px solid var(--line);
+  background: #000;
+  color: var(--line);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0;
+}
+
+.mode-btn.active {
+  background: #222;
+  color: currentColor;
+  border-color: currentColor;
+}
+
+.mode-btn.inactive,
+.mode-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* =========================
+   console button grid
+   ========================= */
+
+.console-btn,
+.menu-item {
+  min-width: 2.5rem;
+  min-height: 2.2rem;
+  border: 2px solid var(--line);
+  background: #000;
+  cursor: pointer;
+}
+
+.planet-btn {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  gap: 0.08rem;
+  padding: 0.3rem 0.2rem;
+}
+
+.planet-btn .planet-btn-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.planet-btn .planet-btn-count {
+  font-size: 0.72rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.planet-btn.mode-disabled {
+  opacity: 0.24;
+  border-color: #666;
+  color: #888;
+  background: #050505;
+}
+
+.planet-btn.mode-source,
+.planet-btn.mode-target,
+.planet-btn.mode-cancel {
+  opacity: 1;
+}
+
+.player-1 .planet-btn.mode-source,
+.player-1 .planet-btn.mode-target,
+.player-1 .planet-btn.mode-cancel {
+  border-color: var(--p1);
+  color: var(--p1);
+}
+
+.player-2 .planet-btn.mode-source,
+.player-2 .planet-btn.mode-target,
+.player-2 .planet-btn.mode-cancel {
+  border-color: var(--p2);
+  color: var(--p2);
+}
+
+.planet-btn.mode-target {
+  background: #111;
+}
+
+.planet-btn.mode-cancel {
+  background: #161616;
+}
+
+.planet-btn.selected {
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.planet-btn:disabled {
+  cursor: default;
+}
+
+/* =========================
+   board wrapper + overlays
+   ========================= */
+
+.board-stage {
+  min-height: 0;
+  padding: 0.35rem;
+}
+
+.board-wrap {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.game-board {
+  position: relative;
+  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.board-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 48vh;
+  background: #000;
+}
+
+.menu-wrap {
+  position: absolute;
+  left: -0.0rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+}
+
+.menu-trigger {
+  width: 2.8rem;
+  height: 3rem;
+  background: #000;
+  border: 2px solid var(--line);
+  display: grid;
+  place-items: center;
+  gap: 0.22rem;
+  padding: 0.35rem;
+  cursor: pointer;
+}
+
+.menu-trigger span {
+  display: block;
+  width: 100%;
+  height: 0.2rem;
+  background: var(--line);
+}
+
+.menu-panel {
+  position: absolute;
+  left: 3.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 9rem;
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.35rem;
+  z-index: 21;
+}
+
+.menu-item {
+  min-width: 2.5rem;
+  min-height: 2.2rem;
+  border: 2px solid var(--line);
+  background: #000;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+}
+
+.help-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(34rem, calc(100% - 2rem));
+  padding: 1rem;
+  z-index: 30;
+  background: rgba(8, 8, 8, 0.98);
+}
+
+.help-panel h2 {
+  margin-top: 0;
+}
+
+/* =========================
+   game board area
+   ========================= */
+
+.edge {
+  stroke: var(--line);
+  stroke-width: 0.7;
+  opacity: 0.9;
+}
+
+.planet.neutral {
+  color: var(--line);
+}
+
+.planet.owned-player-1 {
+  color: var(--p1);
+}
+
+.planet.owned-player-2 {
+  color: var(--p2);
+}
+
+.planet-card {
+  fill: #000;
+  stroke: currentColor;
+  stroke-width: 0.55;
+}
+
+.planet-letter {
+  fill: currentColor;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 4.9px;
+  font-weight: 700;
+}
+
+.planet-ships {
+  fill: currentColor;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 3.2px;
+  font-weight: 700;
+}
+
+.planet-upgrade-track {
+  fill: #000;
+  stroke: currentColor;
+  stroke-width: 0.4;
+}
+
+.planet-upgrade-fill {
+  fill: var(--warn);
+}
+
+.planet-diamond {
+  fill: currentColor;
+  stroke: none;
+}
+
+.fleet-dot {
+  fill: #000;
+  stroke: currentColor;
+  stroke-width: 0.45;
+}
+
+.fleet-text {
+  fill: currentColor;
+  text-anchor: middle;
+  font-size: 1.7px;
+  font-weight: 700;
+}
+
+.fleet-player-1 {
+  color: var(--p1);
+}
+
+.fleet-player-2 {
+  color: var(--p2);
+}
+
+/* =========================
+   larger screens
+   ========================= */
+
+@media (min-width: 700px) {
+  .app-shell {
+    max-width: 42rem;
+    margin: 0 auto;
+  }
+
+  .board-svg {
+    min-height: 34rem;
+  }
+}
