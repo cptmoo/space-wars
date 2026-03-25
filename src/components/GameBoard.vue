@@ -1,14 +1,18 @@
 <template>
   <div class="game-board card">
-    <svg viewBox="0 0 100 100" class="board-svg" preserveAspectRatio="xMidYMid meet">
+    <svg
+      :viewBox="`0 0 ${mapData.dimensions.width} ${mapData.dimensions.height}`"
+      class="board-svg"
+      preserveAspectRatio="xMidYMid meet"
+    >
       <g class="edges">
         <line
-          v-for="link in mapData.links"
-          :key="`${link[0]}-${link[1]}`"
-          :x1="planetLookup[link[0]].x"
-          :y1="planetLookup[link[0]].y"
-          :x2="planetLookup[link[1]].x"
-          :y2="planetLookup[link[1]].y"
+          v-for="edge in mapData.edges"
+          :key="`${edge.from}-${edge.to}`"
+          :x1="planetLookup[edge.from].x"
+          :y1="planetLookup[edge.from].y"
+          :x2="planetLookup[edge.to].x"
+          :y2="planetLookup[edge.to].y"
           class="edge"
         />
       </g>
@@ -34,27 +38,26 @@
           :class="planetOwnerClass(planet.id)"
           :transform="`translate(${planet.x} ${planet.y})`"
         >
-          <!-- Neutral planets -->
           <template v-if="planetStates[planet.id].owner === 0">
             <rect x="-4.5" y="-8" width="9" height="16" rx="0.35" class="planet-card" />
 
-            <text x="0" y="-4.3" class="planet-letter">{{ planet.id }}</text>
+            <text x="0" y="-4.3" class="planet-letter">{{ planet.label ?? planet.id }}</text>
             <text
               x="0"
               y="4.3"
               class="planet-letter"
               transform="rotate(180 0 4.3)"
             >
-              {{ planet.id }}
+              {{ planet.label ?? planet.id }}
             </text>
 
-            <text x="0" y="0.2" class="planet-ships">{{ planetStates[planet.id].ships }}</text>
+            <text x="0" y="0.2" class="planet-ships">
+              {{ roundedShips(planetStates[planet.id].ships) }}
+            </text>
           </template>
 
-          <!-- Owned planets -->
           <template v-else>
             <g :transform="planetStates[planet.id].owner === 2 ? 'rotate(180)' : ''">
-              <!-- upgrade bar outside left -->
               <g v-if="planetStates[planet.id].mode === 'U'" class="upgrade-bar-group">
                 <rect
                   x="-9.0"
@@ -73,23 +76,31 @@
                   class="planet-upgrade-fill"
                 />
               </g>
-
-              <!-- main card -->
+              <template v-if="isCapital(planet.id)">
+                <text
+                  x="0"
+                  y="-9.5"
+                  class="planet-crown"
+                >
+                  ▲
+                </text>
+              </template>
               <rect x="-4.5" y="-8" width="9" height="16" rx="0.35" class="planet-card" />
 
-              <text x="0" y="-4.3" class="planet-letter">{{ planet.id }}</text>
+              <text x="0" y="-4.3" class="planet-letter">{{ planet.label ?? planet.id }}</text>
               <text
                 x="0"
                 y="4.3"
                 class="planet-letter"
                 transform="rotate(180 0 4.3)"
               >
-                {{ planet.id }}
+                {{ planet.label ?? planet.id }}
               </text>
 
-              <text x="0" y="0.2" class="planet-ships">{{ planetStates[planet.id].ships }}</text>
+              <text x="0" y="0.2" class="planet-ships">
+                {{ roundedShips(planetStates[planet.id].ships) }}
+              </text>
 
-              <!-- level diamonds outside right, growing upward from bottom-right -->
               <g class="planet-level-group">
                 <rect
                   v-for="index in visibleLevelCount(planetStates[planet.id].level)"
@@ -102,6 +113,22 @@
                   :transform="`rotate(45 6.725 ${diamondY(index) + 0.725})`"
                 />
               </g>
+            </g>
+          </template>
+          <template v-if="planetStates[planet.id]?.battle">
+            <g
+              class="battle-marker"
+              :class="battleOwnerClass(planet.id)"
+              :transform="battleMarkerTransform(planet.id)"
+            >
+              <circle r="2.6" class="battle-marker-dot" />
+              <text
+                y="0.45"
+                class="battle-marker-text"
+                :transform="battleMarkerTextTransform(planet.id)"
+              >
+                {{ roundedShips(planetStates[planet.id].battle.attackers) }}
+              </text>
             </g>
           </template>
         </g>
@@ -124,14 +151,59 @@ const planetLookup = computed(() => {
 })
 
 const fleetPositions = computed(() => {
-  return props.fleets.map((fleet) => {
-    const from = planetLookup.value[fleet.fromId]
-    const to = planetLookup.value[fleet.toId]
-    const x = from.x + (to.x - from.x) * fleet.progress
-    const y = from.y + (to.y - from.y) * fleet.progress
-    return { ...fleet, x, y }
+  return props.fleets.map((fleet, index) => {
+    const from = planetLookup.value[fleet.from]
+    const to = planetLookup.value[fleet.to]
+
+    const progress = fleet.duration > 0
+      ? Math.max(0, Math.min(1, fleet.progress / fleet.duration))
+      : 1
+
+    const x = from.x + (to.x - from.x) * progress
+    const y = from.y + (to.y - from.y) * progress
+
+    return {
+      id: `${fleet.owner}-${fleet.from}-${fleet.to}-${index}`,
+      owner: fleet.owner,
+      ships: roundedShips(fleet.ships),
+      x,
+      y,
+    }
   })
 })
+
+function isCapital(planetId) {
+  const def = props.mapData.planets.find(p => p.id === planetId)
+  return def?.specialType === 'capital'
+}
+
+function battleOwnerClass(planetId) {
+  const attackerOwner = props.planetStates[planetId]?.battle?.attackerOwner ?? 0
+  return {
+    'battle-player-1': attackerOwner === 1,
+    'battle-player-2': attackerOwner === 2,
+  }
+}
+
+function battleMarkerTransform(planetId) {
+  const attackerOwner = props.planetStates[planetId]?.battle?.attackerOwner ?? 0
+
+  if (attackerOwner === 2) {
+    return 'translate(-6.8 6.8)'
+  }
+
+  return 'translate(6.8 -6.8)'
+}
+
+function battleMarkerTextTransform(planetId) {
+  const attackerOwner = props.planetStates[planetId]?.battle?.attackerOwner ?? 0
+
+  if (attackerOwner === 2) {
+    return 'rotate(180)'
+  }
+
+  return ''
+}
 
 function planetOwnerClass(planetId) {
   const owner = props.planetStates[planetId]?.owner ?? 0
@@ -152,5 +224,9 @@ function visibleLevelCount(level) {
 
 function diamondY(index) {
   return 5.3 - (index - 1) * 2.15
+}
+
+function roundedShips(value) {
+  return Math.round(value ?? 0)
 }
 </script>

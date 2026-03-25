@@ -41,13 +41,15 @@
           :key="planet.id"
           class="console-btn planet-btn"
           :class="[
-            `mode-${planet.mode}`,
+            `action-${planet.actionMode}`,
+            `perspective-${planet.perspective}`,
             {
               selected: planet.selected,
               mine: planet.owner === player.id,
+              'has-battle': planet.hasBattle,
             },
           ]"
-          :disabled="planet.mode === 'disabled'"
+          :disabled="planet.actionMode === 'disabled'"
           @click="$emit('planet-press', planet.id)"
         >
           <span class="planet-btn-label">{{ planet.label }}</span>

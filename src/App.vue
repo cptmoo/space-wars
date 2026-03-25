@@ -1,400 +1,210 @@
 <template>
   <div class="app-shell">
-<PlayerConsole
-  class="console-top"
-  :player="players[1]"
-  :planet-buttons="planetButtonsForPlayer(2)"
-  :selected-source-id="playerSelections[2]"
-  :planet-states="planetStates"
-  :stats="playerStats(2)"
-  mirrored
-  @planet-press="handleConsolePlanetPress(2, $event)"
-  @set-mode="({ planetId, mode }) => setPlanetMode(2, planetId, mode)"
-/>
-
-<main class="board-stage">
-  <div class="board-wrap">
-    <GameBoard
-      :map-data="mapData"
+    <PlayerConsole
+      class="console-top"
+      :player="players[1]"
+      :planet-buttons="planetButtonsForPlayer(2)"
+      :selected-source-id="playerSelections[2]"
       :planet-states="planetStates"
-      :fleets="fleets"
+      :stats="playerStats(2)"
+      mirrored
+      @planet-press="handleConsolePlanetPress(2, $event)"
+      @set-mode="({ planetId, mode }) => setPlanetMode(2, planetId, mode)"
     />
 
-    <MenuButton
-      :open="menuOpen"
-      @toggle="menuOpen = !menuOpen"
-      @new-game="resetGame"
-      @restart="resetGame"
-      @help="showHelp = !showHelp"
+    <main class="board-stage">
+      <div class="board-wrap">
+        <GameBoard
+          :map-data="map"
+          :planet-states="planetStates"
+          :fleets="fleets"
+        />
+
+        <MenuButton
+          :open="menuOpen"
+          @toggle="menuOpen = !menuOpen"
+          @new-game="handleResetGame"
+          @restart="handleResetGame"
+          @help="showHelp = !showHelp"
+        />
+
+        <div v-if="showHelp" class="help-panel card">
+          <h2>How this prototype works</h2>
+          <p>All control happens through the player consoles.</p>
+          <p>First press: select one of your planets that can send.</p>
+          <p>Second press: choose any linked planet to send.</p>
+          <p>Press the selected planet again to cancel.</p>
+          <p>B builds ships. U upgrades the planet.</p>
+        </div>
+      </div>
+    </main>
+
+    <PlayerConsole
+      class="console-bottom"
+      :player="players[0]"
+      :planet-buttons="planetButtonsForPlayer(1)"
+      :selected-source-id="playerSelections[1]"
+      :planet-states="planetStates"
+      :stats="playerStats(1)"
+      @planet-press="handleConsolePlanetPress(1, $event)"
+      @set-mode="({ planetId, mode }) => setPlanetMode(1, planetId, mode)"
     />
-
-    <div v-if="showHelp" class="help-panel card">
-      <h2>How this prototype works</h2>
-      <p>All control happens through the player consoles.</p>
-      <p>First press: select one of your planets that can send.</p>
-      <p>Second press: choose any linked planet to send half your ships.</p>
-      <p>Press the selected planet again to cancel.</p>
-      <p>B builds ships. U upgrades the planet.</p>
-    </div>
-  </div>
-</main>
-
-<PlayerConsole
-  class="console-bottom"
-  :player="players[0]"
-  :planet-buttons="planetButtonsForPlayer(1)"
-  :selected-source-id="playerSelections[1]"
-  :planet-states="planetStates"
-  :stats="playerStats(1)"
-  @planet-press="handleConsolePlanetPress(1, $event)"
-  @set-mode="({ planetId, mode }) => setPlanetMode(1, planetId, mode)"
-/>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { ref } from 'vue'
+
 import GameBoard from './components/GameBoard.vue'
-import PlayerConsole from './components/PlayerConsole.vue'
 import MenuButton from './components/MenuButton.vue'
+import PlayerConsole from './components/PlayerConsole.vue'
 
-const MAX_SHIPS = 50
-const MAX_LEVEL = 5
-
-const mapData = {
-  width: 100,
-  height: 100,
-  planets: [
-    { id: 'A', x: 12, y: 82 },
-    { id: 'B', x: 76, y: 82 },
-    { id: 'C', x: 45, y: 58 },
-    { id: 'D', x: 20, y: 40 },
-    { id: 'E', x: 80, y: 40 },
-    { id: 'F', x: 54, y: 28 },
-    { id: 'G', x: 24, y: 12 },
-    { id: 'H', x: 86, y: 12 },
-  ],
-  links: [
-    ['A', 'C'],
-    ['A', 'D'],
-    ['B', 'C'],
-    ['B', 'E'],
-    ['C', 'D'],
-    ['C', 'E'],
-    ['D', 'F'],
-    ['E', 'F'],
-    ['D', 'G'],
-    ['F', 'G'],
-    ['E', 'H'],
-    ['F', 'H'],
-  ],
-}
+import {
+  canBuild,
+  canSelectSource,
+  getBuildRate,
+  getConnectedPlanetIds,
+} from './game/rules.js'
+import { isAttackingBattleOnPlanet } from './game/selectors.js'
+import { useGame } from './game/useGame.js'
 
 const players = [
   { id: 1, name: 'South', short: 'S', colourClass: 'player-1' },
   { id: 2, name: 'North', short: 'N', colourClass: 'player-2' },
 ]
 
-function makePlanet(owner, ships, level = 1, mode = 'B') {
-  return {
-    owner,
-    ships,
-    level,
-    mode,
-    progress: 0,
-  }
-}
-
-function initialPlanetStates() {
-  return {
-    A: makePlanet(1, 34, 2, 'U'),
-    B: makePlanet(1, 34, 2, 'B'),
-    C: makePlanet(0, 12, 1, 'B'),
-    D: makePlanet(0, 18, 1, 'B'),
-    E: makePlanet(0, 18, 1, 'B'),
-    F: makePlanet(0, 10, 1, 'B'),
-    G: makePlanet(2, 34, 2, 'B'),
-    H: makePlanet(2, 34, 2, 'U'),
-  }
-}
-
-const planetStates = ref(initialPlanetStates())
-const fleets = ref([])
 const menuOpen = ref(false)
 const showHelp = ref(false)
 
-const playerSelections = reactive({
-  1: null,
-  2: null,
-})
+const {
+  map,
+  planetStates,
+  fleets,
+  playerSelections,
+  resetGame,
+  setPlayerSelection,
+  clearPlayerSelection,
+  sendSelectedFleet,
+  retreatSelectedBattle,
+  setPlanetModeForPlayer,
+  player1Stats,
+  player2Stats,
+  player1PlanetButtons,
+  player2PlanetButtons,
+} = useGame()
 
-const planetIds = mapData.planets.map((p) => p.id)
+function buildPer10sForPlayer(playerId) {
+  let total = 0
 
-const lastFrame = ref(0)
-let rafId = 0
+  for (const planet of map.planets) {
+    const state = planetStates.value[planet.id]
+    if (!state) continue
+    if (state.owner !== playerId) continue
+    if (state.mode !== 'B') continue
+    if (state.battle) continue
+    if (!canBuild(map, planetStates.value, planet.id)) continue
 
-function areLinked(a, b) {
-  return mapData.links.some(([p1, p2]) => {
-    return (p1 === a && p2 === b) || (p1 === b && p2 === a)
-  })
-}
+    total += getBuildRate(map, planetStates.value, planet.id) * 10
+  }
 
-function getLinkedPlanetIds(planetId) {
-  return mapData.links
-    .filter(([a, b]) => a === planetId || b === planetId)
-    .map(([a, b]) => (a === planetId ? b : a))
-}
-
-function shipsToSendFrom(planetId) {
-  const state = planetStates.value[planetId]
-  if (!state) return 0
-  return Math.floor(state.ships / 2)
-}
-
-function canPlayerSelectAsSource(playerId, planetId) {
-  const state = planetStates.value[planetId]
-  if (!state) return false
-  return state.owner === playerId && shipsToSendFrom(planetId) >= 1
+  return total.toFixed(1)
 }
 
 function playerStats(playerId) {
-  let totalShips = 0
-  let totalLevels = 0
-  let buildPer10s = 0
-
-  for (const planetId of planetIds) {
-    const state = planetStates.value[planetId]
-    if (!state || state.owner !== playerId) continue
-
-    totalShips += state.ships
-    totalLevels += state.level
-
-    if (state.mode === 'B' && state.ships < MAX_SHIPS) {
-      buildPer10s += 10 / buildSecondsForLevel(state.level)
-    }
-  }
+  const base = playerId === 1 ? player1Stats.value : player2Stats.value
 
   return {
-    totalShips,
-    totalLevels,
-    buildPer10s: buildPer10s.toFixed(1),
+    totalShips: Math.round(base.ships),
+    totalLevels: Math.round(base.levels),
+    buildPer10s: buildPer10sForPlayer(playerId),
   }
 }
 
-function planetButtonsForPlayer(playerId) {
+function decoratePlanetButtons(playerId, baseButtons) {
   const selectedSourceId = playerSelections[playerId]
-  const validTargets = selectedSourceId ? getLinkedPlanetIds(selectedSourceId) : []
+  const validTargets = selectedSourceId
+    ? getConnectedPlanetIds(map, selectedSourceId)
+    : []
 
-  return planetIds.map((planetId) => {
-    const state = planetStates.value[planetId]
-    let mode = 'disabled'
+  return baseButtons.map((planet) => {
+    let actionMode = 'disabled'
 
     if (!selectedSourceId) {
-      if (canPlayerSelectAsSource(playerId, planetId)) {
-        mode = 'source'
+      if (canSelectActionSource(playerId, planet.id)) {
+        actionMode = 'source'
       }
     } else {
-      if (planetId === selectedSourceId) {
-        mode = 'cancel'
-      } else if (validTargets.includes(planetId)) {
-        mode = 'target'
+      if (planet.id === selectedSourceId) {
+        actionMode = 'cancel'
+      } else if (validTargets.includes(planet.id)) {
+        actionMode = 'target'
       }
     }
 
     return {
-      id: planetId,
-      label: planetId,
-      owner: state.owner,
-      ships: state.ships,
-      mode,
-      selected: planetId === selectedSourceId,
+      ...planet,
+      ships: Math.round(planet.ships),
+      actionMode,
+      selected: planet.id === selectedSourceId,
     }
   })
+}
+
+function planetButtonsForPlayer(playerId) {
+  const baseButtons = playerId === 1
+    ? player1PlanetButtons.value
+    : player2PlanetButtons.value
+
+  return decoratePlanetButtons(playerId, baseButtons)
 }
 
 function handleConsolePlanetPress(playerId, planetId) {
   const selectedSourceId = playerSelections[playerId]
 
   if (!selectedSourceId) {
-    if (canPlayerSelectAsSource(playerId, planetId)) {
-      playerSelections[playerId] = planetId
+    if (canSelectActionSource(playerId, planetId)) {
+      setPlayerSelection(playerId, planetId)
     }
     return
   }
 
   if (planetId === selectedSourceId) {
-    playerSelections[playerId] = null
+    clearPlayerSelection(playerId)
     return
   }
 
-  if (!areLinked(selectedSourceId, planetId)) {
+  const validTargets = getConnectedPlanetIds(map, selectedSourceId)
+  if (!validTargets.includes(planetId)) {
     return
   }
 
-  sendFleet(playerId, selectedSourceId, planetId)
-  playerSelections[playerId] = null
-}
+  const selectedPlanetState = planetStates.value[selectedSourceId]
+  const isBattleRetreatSource =
+    selectedPlanetState?.battle?.attackerOwner === playerId &&
+    selectedPlanetState?.battle?.attackers > 0
 
-function sendFleet(playerId, fromId, toId) {
-  const fromState = planetStates.value[fromId]
-  if (!fromState) return
-
-  const sendCount = Math.floor(fromState.ships / 2)
-  if (sendCount < 1) return
-
-  fromState.ships -= sendCount
-  if (fromState.progress > 1) {
-    fromState.progress = 1
-  }
-
-  fleets.value.push({
-    id: crypto.randomUUID(),
-    owner: playerId,
-    fromId,
-    toId,
-    ships: sendCount,
-    progress: 0,
-    duration: 1.3,
-  })
-}
-
-function resolveFleetArrival(fleet) {
-  const destination = planetStates.value[fleet.toId]
-  if (!destination) return
-
-  if (destination.owner === 0) {
-    if (fleet.ships > destination.ships) {
-      destination.owner = fleet.owner
-      destination.ships = fleet.ships - destination.ships
-      destination.level = 1
-      destination.mode = 'B'
-      destination.progress = 0
-    } else {
-      destination.ships -= fleet.ships
-    }
+  if (isBattleRetreatSource) {
+    retreatSelectedBattle(playerId, planetId)
     return
   }
 
-  if (destination.owner === fleet.owner) {
-    destination.ships = Math.min(MAX_SHIPS, destination.ships + fleet.ships)
-    return
-  }
-
-  if (fleet.ships > destination.ships) {
-    destination.owner = fleet.owner
-    destination.ships = fleet.ships - destination.ships
-    destination.level = 1
-    destination.mode = 'B'
-    destination.progress = 0
-  } else {
-    destination.ships -= fleet.ships
-  }
+  sendSelectedFleet(playerId, planetId)
 }
 
 function setPlanetMode(playerId, planetId, mode) {
-  const state = planetStates.value[planetId]
-  if (!state) return
-  if (state.owner !== playerId) return
-  if (mode !== 'B' && mode !== 'U') return
-
-  state.mode = mode
-  if (mode === 'B') {
-    state.progress = 0
-  }
+  setPlanetModeForPlayer(playerId, planetId, mode)
 }
 
-function buildSecondsForLevel(level) {
-  return Math.max(0.7, 3.6 - (level - 1) * 0.45)
+function canSelectActionSource(playerId, planetId) {
+  return (
+    canSelectSource(planetStates.value, playerId, planetId) ||
+    isAttackingBattleOnPlanet(planetStates.value, playerId, planetId)
+  )
 }
 
-function upgradeSecondsForLevel(level) {
-  return 5 + (level - 1) * 1.25
-}
-
-function updatePlanetEconomy(dt) {
-  for (const planetId of planetIds) {
-    const state = planetStates.value[planetId]
-    if (!state || state.owner === 0) continue
-
-    if (state.mode === 'B') {
-      if (state.ships >= MAX_SHIPS) {
-        state.progress = 0
-        continue
-      }
-
-      state.progress += dt / buildSecondsForLevel(state.level)
-
-      while (state.progress >= 1 && state.ships < MAX_SHIPS) {
-        state.progress -= 1
-        state.ships += 1
-      }
-
-      if (state.ships >= MAX_SHIPS) {
-        state.progress = 0
-      }
-    } else if (state.mode === 'U') {
-      if (state.level >= MAX_LEVEL) {
-        state.progress = 1
-        continue
-      }
-
-      state.progress += dt / upgradeSecondsForLevel(state.level)
-
-      if (state.progress >= 1) {
-        state.progress = 0
-        state.level += 1
-        if (state.level >= MAX_LEVEL) {
-          state.level = MAX_LEVEL
-        }
-      }
-    }
-  }
-}
-
-function updateFleets(dt) {
-  const survivors = []
-
-  for (const fleet of fleets.value) {
-    fleet.progress += dt / fleet.duration
-
-    if (fleet.progress >= 1) {
-      resolveFleetArrival(fleet)
-    } else {
-      survivors.push(fleet)
-    }
-  }
-
-  fleets.value = survivors
-}
-
-function update(dt) {
-  updatePlanetEconomy(dt)
-  updateFleets(dt)
-}
-
-function resetGame() {
-  planetStates.value = initialPlanetStates()
-  fleets.value = []
-  playerSelections[1] = null
-  playerSelections[2] = null
+function handleResetGame() {
+  resetGame()
   menuOpen.value = false
   showHelp.value = false
 }
-
-function frame(now) {
-  if (!lastFrame.value) lastFrame.value = now
-  const dt = Math.min((now - lastFrame.value) / 1000, 0.05)
-  lastFrame.value = now
-
-  update(dt)
-  rafId = requestAnimationFrame(frame)
-}
-
-onMounted(() => {
-  rafId = requestAnimationFrame(frame)
-})
-
-onBeforeUnmount(() => {
-  cancelAnimationFrame(rafId)
-})
 </script>

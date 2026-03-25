@@ -212,17 +212,89 @@ button {
   opacity: 0.9;
 }
 
-.planet-btn.mode-disabled {
+
+/* =========================
+   action states (interaction)
+   ========================= */
+
+.planet-btn.action-disabled {
   opacity: 0.24;
   border-color: #666;
   color: #888;
   background: #050505;
 }
 
-.planet-btn.mode-source,
-.planet-btn.mode-target,
-.planet-btn.mode-cancel {
+.planet-btn.action-source,
+.planet-btn.action-target,
+.planet-btn.action-cancel {
   opacity: 1;
+}
+
+.planet-btn.action-source {
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.planet-btn.action-target {
+  background: #111;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.planet-btn.action-cancel {
+  background: #161616;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.planet-btn.selected {
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+/* =========================
+   perspective (what the planet IS)
+   ========================= */
+
+.planet-btn.perspective-home,
+.planet-btn.perspective-owned {
+  color: currentColor;
+  border-color: currentColor;
+}
+
+.player-1 .planet-btn.perspective-home,
+.player-1 .planet-btn.perspective-owned {
+  color: var(--p1);
+  border-color: var(--p1);
+}
+
+.player-2 .planet-btn.perspective-home,
+.player-2 .planet-btn.perspective-owned {
+  color: var(--p2);
+  border-color: var(--p2);
+}
+
+.planet-btn.perspective-enemy {
+  opacity: 0.85;
+}
+
+.player-1 .planet-btn.perspective-enemy {
+  color: var(--p2);
+  border-color: var(--p2);
+}
+
+.player-2 .planet-btn.perspective-enemy {
+  color: var(--p1);
+  border-color: var(--p1);
+}
+
+.planet-btn.perspective-neutral {
+  color: var(--neutral);
+  border-color: var(--neutral);
+}
+/* =========================
+   battle state
+   ========================= */
+
+.planet-btn.has-battle {
+  outline: 2px solid var(--warn);
+  outline-offset: -2px;
 }
 
 .player-1 .planet-btn.mode-source,
@@ -262,6 +334,9 @@ button {
 .board-stage {
   min-height: 0;
   padding: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;  
 }
 
 .board-wrap {
@@ -269,6 +344,11 @@ button {
   height: 100%;
   min-height: 100%;
   overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;  
 }
 
 .game-board {
@@ -409,6 +489,13 @@ button {
   stroke: none;
 }
 
+.planet-crown {
+  fill: var(--warn);
+  text-anchor: middle;
+  font-size: 4px;
+  font-weight: 700;
+}
+
 .fleet-dot {
   fill: #000;
   stroke: currentColor;
@@ -429,6 +516,34 @@ button {
 .fleet-player-2 {
   color: var(--p2);
 }
+
+
+/* =========================
+   battle indicators
+   ========================= */
+
+.battle-marker-dot {
+  fill: #000;
+  stroke: currentColor;
+  stroke-width: 0.45;
+}
+
+.battle-marker-text {
+  fill: currentColor;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 2.3px;
+  font-weight: 700;
+}
+
+.battle-player-1 {
+  color: var(--p1);
+}
+
+.battle-player-2 {
+  color: var(--p2);
+}
+
 
 /* =========================
    larger screens
