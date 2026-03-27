@@ -36,6 +36,11 @@
           <p>Press the selected planet again to cancel.</p>
           <p>B builds ships. U upgrades the planet.</p>
         </div>
+        <div v-if="winner !== 0" class="win-panel card">
+          <h2>{{ winnerName() }} wins</h2>
+          <p>Win condition: {{ map.winCondition?.type ?? 'elimination' }}</p>
+          <button class="menu-item" @click="handleResetGame">Play again</button>
+        </div>
       </div>
     </main>
 
@@ -61,9 +66,11 @@ import PlayerConsole from './components/PlayerConsole.vue'
 
 import {
   canBuild,
+  canSelectOwnedPlanet,
   canSelectSource,
   getBuildRate,
   getConnectedPlanetIds,
+  getSendableShips,
 } from './game/rules.js'
 import { isAttackingBattleOnPlanet } from './game/selectors.js'
 import { useGame } from './game/useGame.js'
@@ -91,6 +98,7 @@ const {
   player2Stats,
   player1PlanetButtons,
   player2PlanetButtons,
+  winner,
 } = useGame()
 
 function buildPer10sForPlayer(playerId) {
@@ -110,6 +118,12 @@ function buildPer10sForPlayer(playerId) {
   return total.toFixed(1)
 }
 
+function winnerName() {
+  if (winner.value === 1) return players[0].name
+  if (winner.value === 2) return players[1].name
+  return ''
+}
+
 function playerStats(playerId) {
   const base = playerId === 1 ? player1Stats.value : player2Stats.value
 
@@ -122,9 +136,24 @@ function playerStats(playerId) {
 
 function decoratePlanetButtons(playerId, baseButtons) {
   const selectedSourceId = playerSelections[playerId]
-  const validTargets = selectedSourceId
-    ? getConnectedPlanetIds(map, selectedSourceId)
-    : []
+  const selectedPlanetState = selectedSourceId
+    ? planetStates.value[selectedSourceId]
+    : null
+
+  const selectedIsAttackingBattle =
+    Boolean(
+      selectedPlanetState?.battle &&
+      selectedPlanetState?.battle.attackerOwner === playerId &&
+      selectedPlanetState?.battle.attackers > 0
+    )
+
+  const selectedCanSendNormally =
+    Boolean(selectedSourceId && canSelectSource(planetStates.value, playerId, selectedSourceId))
+
+  const validTargets =
+    selectedSourceId && (selectedIsAttackingBattle || selectedCanSendNormally)
+      ? getConnectedPlanetIds(map, selectedSourceId)
+      : []
 
   return baseButtons.map((planet) => {
     let actionMode = 'disabled'
@@ -173,15 +202,24 @@ function handleConsolePlanetPress(playerId, planetId) {
     return
   }
 
+  const selectedPlanetState = planetStates.value[selectedSourceId]
+
+  const isBattleRetreatSource =
+    selectedPlanetState?.battle?.attackerOwner === playerId &&
+    selectedPlanetState?.battle?.attackers > 0
+
+  const canSendNormally =
+    canSelectSource(planetStates.value, playerId, selectedSourceId)
+
+  const canActThroughMovement = isBattleRetreatSource || canSendNormally
+  if (!canActThroughMovement) {
+    return
+  }
+
   const validTargets = getConnectedPlanetIds(map, selectedSourceId)
   if (!validTargets.includes(planetId)) {
     return
   }
-
-  const selectedPlanetState = planetStates.value[selectedSourceId]
-  const isBattleRetreatSource =
-    selectedPlanetState?.battle?.attackerOwner === playerId &&
-    selectedPlanetState?.battle?.attackers > 0
 
   if (isBattleRetreatSource) {
     retreatSelectedBattle(playerId, planetId)
@@ -196,9 +234,17 @@ function setPlanetMode(playerId, planetId, mode) {
 }
 
 function canSelectActionSource(playerId, planetId) {
+  const planet = planetStates.value[planetId]
+
   return (
-    canSelectSource(planetStates.value, playerId, planetId) ||
-    isAttackingBattleOnPlanet(planetStates.value, playerId, planetId)
+    canSelectOwnedPlanet(planetStates.value, playerId, planetId) ||
+    isAttackingBattleOnPlanet(planetStates.value, playerId, planetId) ||
+    Boolean(
+      planet &&
+      planet.owner === playerId &&
+      planet.battle &&
+      getSendableShips(planetStates.value, planetId) > 0
+    )
   )
 }
 

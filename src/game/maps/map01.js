@@ -16,23 +16,24 @@ const map = {
   },
 
   winCondition: {
+    // elimination or capital-loss
     type: 'elimination',
     options: {},
   },
 
   planets: [
-    { id: 'A', label: 'A', x: 18, y: 124, initialOwner: 1, initialShips: 4, initialLevel: 1, initialMode: 'B', specialType: 'capital', overrides: {} },
-    { id: 'B', label: 'B', x: 82, y: 124, initialOwner: 1, initialShips: 4, initialLevel: 1, initialMode: 'B', specialType: null, overrides: {} },
+    { id: 'A', label: 'A', x: 18, y: 124, initialOwner: 1, initialShips: 4, initialLevel: 0, initialMode: 'B', specialType: 'capital', overrides: {} },
+    { id: 'B', label: 'B', x: 82, y: 124, initialOwner: 1, initialShips: 4, initialLevel: 0, initialMode: 'B', specialType: null, overrides: {} },
 
-    { id: 'C', label: 'C', x: 50, y: 96, initialOwner: 0, initialShips: 12, initialLevel: 1, initialMode: 'B', specialType: null, overrides: {} },
+    { id: 'C', label: 'C', x: 50, y: 96, initialOwner: 0, initialShips: 12, initialLevel: 0, initialMode: 'B', specialType: null, overrides: {} },
 
-    { id: 'D', label: 'D', x: 26, y: 71, initialOwner: 0, initialShips: 18, initialLevel: 1, initialMode: 'B', specialType: null, overrides: {} },
-    { id: 'E', label: 'E', x: 74, y: 71, initialOwner: 0, initialShips: 18, initialLevel: 1, initialMode: 'B', specialType: null, overrides: {} },
+    { id: 'D', label: 'D', x: 26, y: 71, initialOwner: 0, initialShips: 18, initialLevel: 0, initialMode: 'B', specialType: null, overrides: {} },
+    { id: 'E', label: 'E', x: 74, y: 71, initialOwner: 0, initialShips: 18, initialLevel: 0, initialMode: 'B', specialType: null, overrides: {} },
 
-    { id: 'F', label: 'F', x: 50, y: 44, initialOwner: 0, initialShips: 12, initialLevel: 1, initialMode: 'B', specialType: null, overrides: {} },
+    { id: 'F', label: 'F', x: 50, y: 44, initialOwner: 0, initialShips: 12, initialLevel: 0, initialMode: 'B', specialType: null, overrides: {} },
 
-    { id: 'G', label: 'G', x: 18, y: 18, initialOwner: 2, initialShips: 4, initialLevel: 1, initialMode: 'B', specialType: null, overrides: {} },
-    { id: 'H', label: 'H', x: 82, y: 18, initialOwner: 2, initialShips: 4, initialLevel: 1, initialMode: 'B', specialType: 'capital', overrides: {} },
+    { id: 'G', label: 'G', x: 18, y: 18, initialOwner: 2, initialShips: 4, initialLevel: 0, initialMode: 'B', specialType: null, overrides: {} },
+    { id: 'H', label: 'H', x: 82, y: 18, initialOwner: 2, initialShips: 4, initialLevel: 0, initialMode: 'B', specialType: 'capital', overrides: {} },
   ],
 
   edges: [

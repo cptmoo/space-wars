@@ -4,6 +4,7 @@ import map01 from './maps/map01.js'
 import { retreatBattle, sendFleet, setPlanetMode, stepGame } from './engine.js'
 import { getPlayerStats, getPlanetButtonsForPlayer } from './selectors.js'
 import { createMatchState } from './state.js'
+import { getWinner } from './rules.js'
 
 /**
  * Main Vue bridge for the game system.
@@ -23,7 +24,7 @@ export function useGame() {
   const map = map01
 
   const matchState = reactive(createMatchState(map))
-
+  const winner = computed(() => getWinner(map, matchState.planetStates))
   const playerSelections = reactive({
     1: null,
     2: null,
@@ -44,6 +45,9 @@ export function useGame() {
 
     playerSelections[1] = null
     playerSelections[2] = null
+    if (!running.value) {
+      start()
+    }
   }
 
   /**
@@ -62,7 +66,10 @@ export function useGame() {
     lastFrameTime.value = nowMs
 
     stepGame(map, matchState.planetStates, matchState.fleets, dtSeconds)
-
+    if (winner.value !== 0) {
+      stop()
+      return
+    }
     animationFrameId = requestAnimationFrame(frame)
   }
 
@@ -221,6 +228,7 @@ function retreatSelectedBattle(playerId, toId) {
     start,
     stop,
     resetGame,
+    winner,
 
     setPlayerSelection,
     clearPlayerSelection,

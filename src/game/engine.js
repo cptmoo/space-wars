@@ -231,7 +231,7 @@ export function updatePlanets(map, planetStates, dtSeconds) {
 export function startBattle(planetStates, planetId, attackerOwner, attackerShips) {
   const planet = planetStates[planetId]
   if (!planet) return
-
+  planet.progress = 0;
   planet.battle = {
     attackerOwner,
     attackers: attackerShips,
@@ -295,6 +295,7 @@ export function resolveBattleOutcome(planetStates, planetId) {
     planet.ships = attackers
     planet.progress = 0
     planet.mode = 'B'
+    planet.level = 0
     clearBattle(planetStates, planetId)
     return
   }
@@ -389,6 +390,7 @@ export function resolveFleetArrival(planetStates, fleet) {
   // becomes the defender/claimant side.
   if (target.owner === 0) {
     target.owner = fleet.owner
+    target.level = 0
     target.ships += fleet.ships
     return
   }

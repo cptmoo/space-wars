@@ -18,7 +18,8 @@ html,
 body,
 #app {
   margin: 0;
-  min-height: 100%;
+  height: 100vh;
+  height: 100dvh;
   background: var(--bg);
   color: var(--line);
   font-family: Arial, Helvetica, sans-serif;
@@ -35,6 +36,7 @@ button {
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr auto;
   background: var(--bg);
@@ -245,7 +247,47 @@ button {
 }
 
 .planet-btn.selected {
-  box-shadow: inset 0 0 0 2px currentColor;
+  box-shadow:
+    inset 0 0 0 2px currentColor,
+    0 0 0 2px #000,
+    0 0 0 4px currentColor;
+  background: #41003c;
+}
+
+/* =========================
+   selected (player glow)
+   ========================= */
+
+.player-1 .planet-btn.selected {
+  background: var(--p1);
+  color: #000;
+  border-color: var(--p1);
+  box-shadow:
+    inset 0 0 0 2px #000,
+    0 0 8px var(--p1),
+    0 0 14px rgba(0, 255, 100, 0.35);
+}
+
+.player-2 .planet-btn.selected {
+  background: var(--p2);
+  color: #000;
+  border-color: var(--p2);
+  box-shadow:
+    inset 0 0 0 2px #000,
+    0 0 8px var(--p2),
+    0 0 14px #41003c;
+}
+
+.player-1 .planet-btn.selected,
+.player-1 .planet-btn.selected .planet-btn-label,
+.player-1 .planet-btn.selected .planet-btn-count {
+  color: #000;
+}
+
+.player-2 .planet-btn.selected,
+.player-2 .planet-btn.selected .planet-btn-label,
+.player-2 .planet-btn.selected .planet-btn-count {
+  color: #000;
 }
 
 /* =========================
@@ -297,32 +339,6 @@ button {
   outline-offset: -2px;
 }
 
-.player-1 .planet-btn.mode-source,
-.player-1 .planet-btn.mode-target,
-.player-1 .planet-btn.mode-cancel {
-  border-color: var(--p1);
-  color: var(--p1);
-}
-
-.player-2 .planet-btn.mode-source,
-.player-2 .planet-btn.mode-target,
-.player-2 .planet-btn.mode-cancel {
-  border-color: var(--p2);
-  color: var(--p2);
-}
-
-.planet-btn.mode-target {
-  background: #111;
-}
-
-.planet-btn.mode-cancel {
-  background: #161616;
-}
-
-.planet-btn.selected {
-  box-shadow: inset 0 0 0 2px currentColor;
-}
-
 .planet-btn:disabled {
   cursor: default;
 }
@@ -364,6 +380,18 @@ button {
   height: 100%;
   min-height: 48vh;
   background: #000;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.board-stage,
+.board-wrap,
+.game-board,
+.board-svg,
+.board-svg text,
+.board-svg tspan {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .menu-wrap {
@@ -558,4 +586,29 @@ button {
   .board-svg {
     min-height: 34rem;
   }
+}
+
+
+/* =========================
+   winner planel
+   ========================= */
+.win-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(22rem, calc(100% - 2rem));
+  padding: 1rem;
+  z-index: 35;
+  background: rgba(8, 8, 8, 0.98);
+  text-align: center;
+}
+
+.win-panel h2 {
+  margin: 0 0 0.5rem;
+}
+
+.win-panel p {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
 }

@@ -163,6 +163,20 @@ export function canSelectSource(planetStates, playerId, planetId) {
 }
 
 /**
+ * Return true if this planet is currently owned by the given player.
+ *
+ * @param {Record<string, any>} planetStates
+ * @param {number} playerId
+ * @param {string} planetId
+ * @returns {boolean}
+ */
+export function canSelectOwnedPlanet(planetStates, playerId, planetId) {
+  const planet = planetStates[planetId]
+  if (!planet) return false
+  return planet.owner === playerId
+}
+
+/**
  * Return true if the player can send from one planet to another.
  *
  * @param {object} map
@@ -281,12 +295,18 @@ export function canSetPlanetMode(planetStates, playerId, planetId, mode) {
 export function getBuildRate(map, planetStates, planetId) {
   const planet = planetStates[planetId]
   if (!planet) return 0
+
   if (!canBuild(map, planetStates, planetId)) return 0
 
-  const rules = getPlanetRules(map, planetId)
+  const rules = getPlanetRules(map, planetId);
 
+  const minRate = 0.30;
+  const maxRate = 0.85;
+  const k = 0.55;
+
+  let rate = minRate + (maxRate - minRate) * (1 - Math.exp(-k * planet.level));
   // Faster at higher levels. Adjust later if needed.
-  return planet.level / rules.shipTimeFactor
+  return rate / rules.shipTimeFactor
 }
 
 /**
@@ -305,8 +325,16 @@ export function getUpgradeRate(map, planetStates, planetId) {
 
   const rules = getPlanetRules(map, planetId)
 
-  // Slower than building. Adjust later if needed.
-  return 1 / rules.upgradeTimeFactor
+  const baseTime = 6
+  const linearTerm = 2
+  const quadraticTerm = 0.4
+
+  const timeToUpgrade =
+    baseTime +
+    linearTerm * planet.level +
+    quadraticTerm * planet.level * planet.level
+
+  return (1 / timeToUpgrade) / rules.upgradeTimeFactor
 }
 
 /**
@@ -365,3 +393,80 @@ export function countOwnedLevels(planetStates, playerId) {
 
   return total
 }
+
+
+
+/**
+ * Return all planet ids that are capitals.
+ *
+ * @param {object} map
+ * @returns {string[]}
+ */
+export function getCapitalPlanetIds(map) {
+  return (map.planets ?? [])
+    .filter((planet) => planet.specialType === 'capital')
+    .map((planet) => planet.id)
+}
+
+/**
+ * Return true if the player currently owns at least one planet.
+ *
+ * @param {Record<string, any>} planetStates
+ * @param {number} playerId
+ * @returns {boolean}
+ */
+export function playerHasAnyPlanets(planetStates, playerId) {
+  return Object.values(planetStates).some((planet) => planet.owner === playerId)
+}
+
+/**
+ * Return true if the player currently owns at least one capital.
+ *
+ * @param {object} map
+ * @param {Record<string, any>} planetStates
+ * @param {number} playerId
+ * @returns {boolean}
+ */
+export function playerHasAnyCapitals(map, planetStates, playerId) {
+  const capitalIds = getCapitalPlanetIds(map)
+
+  return capitalIds.some((planetId) => planetStates[planetId]?.owner === playerId)
+}
+
+/**
+ * Determine whether the game has been won.
+ *
+ * Supported types:
+ * - elimination
+ * - capital-loss
+ *
+ * Returns:
+ * - 1 or 2 for winner
+ * - 0 for no winner yet
+ *
+ * @param {object} map
+ * @param {Record<string, any>} planetStates
+ * @returns {0 | 1 | 2}
+ */
+export function getWinner(map, planetStates) {
+  const winType = map.winCondition?.type ?? 'elimination'
+
+  if (winType === 'capital-loss') {
+    const p1HasCapital = playerHasAnyCapitals(map, planetStates, 1)
+    const p2HasCapital = playerHasAnyCapitals(map, planetStates, 2)
+
+    if (p1HasCapital && !p2HasCapital) return 1
+    if (p2HasCapital && !p1HasCapital) return 2
+    return 0
+  }
+
+  // Default: elimination
+  const p1Alive = playerHasAnyPlanets(planetStates, 1)
+  const p2Alive = playerHasAnyPlanets(planetStates, 2)
+
+  if (p1Alive && !p2Alive) return 1
+  if (p2Alive && !p1Alive) return 2
+
+  return 0
+}
+
