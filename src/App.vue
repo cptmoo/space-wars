@@ -1,5 +1,14 @@
 <template>
-  <div class="app-shell">
+  <NewGameScreen
+    v-if="gamePhase === 'new-game'"
+    :maps="MAPS"
+    :initial-map-id="selectedMapId"
+    :can-close="hasPausedGame"
+    @start="handleStartFromNewGame"
+    @close="handleCloseNewGame"
+  />
+
+  <div v-else class="app-shell">
     <PlayerConsole
       class="console-top"
       :player="players[1]"
@@ -23,7 +32,7 @@
         <MenuButton
           :open="menuOpen"
           @toggle="menuOpen = !menuOpen"
-          @new-game="handleResetGame"
+          @new-game="handleOpenNewGame"
           @restart="handleResetGame"
           @help="showHelp = !showHelp"
         />
@@ -36,10 +45,11 @@
           <p>Press the selected planet again to cancel.</p>
           <p>B builds ships. U upgrades the planet.</p>
         </div>
+
         <div v-if="winner !== 0" class="win-panel card">
           <h2>{{ winnerName() }} wins</h2>
           <p>Win condition: {{ map.winCondition?.type ?? 'elimination' }}</p>
-          <button class="menu-item" @click="handleResetGame">Play again</button>
+          <button class="menu-item" @click="handleReturnToNewGame">OK</button>
         </div>
       </div>
     </main>
@@ -63,6 +73,8 @@ import { ref } from 'vue'
 import GameBoard from './components/GameBoard.vue'
 import MenuButton from './components/MenuButton.vue'
 import PlayerConsole from './components/PlayerConsole.vue'
+import NewGameScreen from './components/NewGameScreen.vue'
+import { MAPS } from './game/maps/index.js'
 
 import {
   canBuild,
@@ -82,37 +94,45 @@ const players = [
 
 const menuOpen = ref(false)
 const showHelp = ref(false)
+const gamePhase = ref('new-game')
+const hasPausedGame = ref(false)
+const selectedMapId = ref(MAPS[0]?.id ?? '')
 
 const {
   map,
+  matchState,
   planetStates,
   fleets,
   playerSelections,
+  running,
+  start,
+  stop,
   resetGame,
+  setMap,
+  winner,
   setPlayerSelection,
   clearPlayerSelection,
   sendSelectedFleet,
-  retreatSelectedBattle,
   setPlanetModeForPlayer,
   player1Stats,
   player2Stats,
   player1PlanetButtons,
   player2PlanetButtons,
-  winner,
-} = useGame()
+  retreatSelectedBattle,
+} = useGame(MAPS[0])
 
 function buildPer10sForPlayer(playerId) {
   let total = 0
 
-  for (const planet of map.planets) {
+  for (const planet of map.value.planets) {
     const state = planetStates.value[planet.id]
     if (!state) continue
     if (state.owner !== playerId) continue
     if (state.mode !== 'B') continue
     if (state.battle) continue
-    if (!canBuild(map, planetStates.value, planet.id)) continue
+    if (!canBuild(map.value, planetStates.value, planet.id)) continue
 
-    total += getBuildRate(map, planetStates.value, planet.id) * 10
+    total += getBuildRate(map.value, planetStates.value, planet.id) * 10
   }
 
   return total.toFixed(1)
@@ -152,7 +172,7 @@ function decoratePlanetButtons(playerId, baseButtons) {
 
   const validTargets =
     selectedSourceId && (selectedIsAttackingBattle || selectedCanSendNormally)
-      ? getConnectedPlanetIds(map, selectedSourceId)
+      ? getConnectedPlanetIds(map.value, selectedSourceId)
       : []
 
   return baseButtons.map((planet) => {
@@ -216,7 +236,7 @@ function handleConsolePlanetPress(playerId, planetId) {
     return
   }
 
-  const validTargets = getConnectedPlanetIds(map, selectedSourceId)
+  const validTargets = getConnectedPlanetIds(map.value, selectedSourceId)
   if (!validTargets.includes(planetId)) {
     return
   }
@@ -253,4 +273,78 @@ function handleResetGame() {
   menuOpen.value = false
   showHelp.value = false
 }
+
+function buildRuntimeMap(baseMap, settings) {
+  return {
+    ...baseMap,
+    rules: {
+      ...(baseMap.rules ?? {}),
+      maxShips: settings.maxShips,
+      maxLevel: settings.maxLevel,
+      shipTimeFactor: settings.shipTimeFactor,
+      upgradeTimeFactor: settings.upgradeTimeFactor,
+      flightTimeFactor: settings.flightTimeFactor,
+      capitalBonus: settings.capitalBonus,
+      battleRate: settings.battleRate,
+    },
+    winCondition: {
+      ...(baseMap.winCondition ?? {}),
+      type: settings.winType,
+    },
+  }
+}
+
+function handleStartFromNewGame(payload) {
+  const selectedBaseMap =
+    MAPS.find((mapItem) => mapItem.id === payload.mapId) ?? MAPS[0]
+
+  const runtimeMap = buildRuntimeMap(selectedBaseMap, payload.settings)
+
+  selectedMapId.value = selectedBaseMap.id
+  hasPausedGame.value = false
+
+  setMap(runtimeMap)
+  start()
+
+  menuOpen.value = false
+  showHelp.value = false
+  gamePhase.value = 'playing'
+}
+
+function handleCloseNewGame() {
+  if (!hasPausedGame.value) {
+    return
+  }
+
+  menuOpen.value = false
+  showHelp.value = false
+  gamePhase.value = 'playing'
+  start()
+  hasPausedGame.value = false
+}
+
+function handleOpenNewGame() {
+  if (gamePhase.value === 'playing' && winner.value === 0) {
+    stop()
+    hasPausedGame.value = true
+    selectedMapId.value = map.value.id
+  }
+
+  gamePhase.value = 'new-game'
+  menuOpen.value = false
+  showHelp.value = false
+}
+
+function handleReturnToNewGame() {
+  stop()
+  hasPausedGame.value = false
+  selectedMapId.value = map.value.id
+
+  menuOpen.value = false
+  showHelp.value = false
+  gamePhase.value = 'new-game'
+}
+
+
+
 </script>

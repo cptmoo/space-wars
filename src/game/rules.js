@@ -1,9 +1,11 @@
 export const DEFAULT_RULES = {
-  maxShips: 50,
-  maxLevel: 5,
-  shipTimeFactor: 1,
-  upgradeTimeFactor: 1,
-  battleRate: 2,
+  maxShips: 50,       // [5, 10, 20, 30, 40, 50, 60, 75, 100, 125, 150, 200]
+  maxLevel: 5,        // [3, 4, 5, 6, 7, 8, 10, 12]
+  shipTimeFactor: 1,  // [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.5, 10.0]
+  upgradeTimeFactor: 1, // [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.5, 10.0]
+  flightTimeFactor: 1, // [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.5, 10.0]
+  capitalBonus: 1.5,  // [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.5, 10.0]
+  battleRate: 2,        //[1.0, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0, 12.5, 15.0, 20.0, 25.0]
 }
 
 /**
@@ -221,7 +223,7 @@ export function getFlightTime(map, fromId, toId) {
   if (!edge) return Infinity
 
   const fromRules = getPlanetRules(map, fromId)
-  return (edge.flightTime ?? 1) * fromRules.shipTimeFactor
+  return (edge.flightTime ?? 1) * fromRules.flightTimeFactor
 }
 
 /**
@@ -236,8 +238,8 @@ export function canBuild(map, planetStates, planetId) {
   const planet = planetStates[planetId]
   if (!planet) return false
 
-  const rules = getPlanetRules(map, planetId)
-  return planet.ships < rules.maxShips
+  const maxShips = getEffectiveMaxShips(map, planetId)
+  return planet.ships < maxShips
 }
 
 /**
@@ -298,14 +300,19 @@ export function getBuildRate(map, planetStates, planetId) {
 
   if (!canBuild(map, planetStates, planetId)) return 0
 
-  const rules = getPlanetRules(map, planetId);
+  const rules = getPlanetRules(map, planetId)
 
-  const minRate = 0.30;
-  const maxRate = 0.85;
-  const k = 0.55;
+  const minRate = 0.30
+  const maxRate = 0.85
+  const k = 0.55
 
-  let rate = minRate + (maxRate - minRate) * (1 - Math.exp(-k * planet.level));
-  // Faster at higher levels. Adjust later if needed.
+  let rate =
+    minRate + (maxRate - minRate) * (1 - Math.exp(-k * planet.level))
+
+  if (isCapitalPlanet(map, planetId)) {
+    rate *= rules.capitalBonus
+  }
+
   return rate / rules.shipTimeFactor
 }
 
@@ -406,6 +413,38 @@ export function getCapitalPlanetIds(map) {
   return (map.planets ?? [])
     .filter((planet) => planet.specialType === 'capital')
     .map((planet) => planet.id)
+}
+
+
+/**
+ * Return true if the given planet is a capital.
+ *
+ * @param {object} map
+ * @param {string} planetId
+ * @returns {boolean}
+ */
+export function isCapitalPlanet(map, planetId) {
+  const planetDef = getPlanetDef(map, planetId)
+  return planetDef?.specialType === 'capital'
+}
+
+/**
+ * Return the effective max ships for a planet.
+ *
+ * Capitals get a multiplier bonus to ship capacity.
+ *
+ * @param {object} map
+ * @param {string} planetId
+ * @returns {number}
+ */
+export function getEffectiveMaxShips(map, planetId) {
+  const rules = getPlanetRules(map, planetId)
+
+  if (isCapitalPlanet(map, planetId)) {
+    return Math.max(1, Math.round(rules.maxShips * rules.capitalBonus))
+  }
+
+  return rules.maxShips
 }
 
 /**

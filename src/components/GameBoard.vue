@@ -219,7 +219,7 @@ function progressClamped(progress) {
 }
 
 function visibleLevelCount(level) {
-  return Math.max(0, Math.min(level ?? 0, 5))
+  return Math.max(0, Math.min(level ?? 0, 12))
 }
 
 function diamondY(index) {

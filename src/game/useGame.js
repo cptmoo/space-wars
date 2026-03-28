@@ -1,6 +1,5 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
-import map01 from './maps/map01.js'
 import { retreatBattle, sendFleet, setPlanetMode, stepGame } from './engine.js'
 import { getPlayerStats, getPlanetButtonsForPlayer } from './selectors.js'
 import { createMatchState } from './state.js'
@@ -19,12 +18,23 @@ import { getWinner } from './rules.js'
  * - state for rendering
  * - derived stats/button data
  * - game actions for UI
+ *
+ * @param {object} initialMap
  */
-export function useGame() {
-  const map = map01
+export function useGame(initialMap) {
+  const currentMap = ref(initialMap)
 
-  const matchState = reactive(createMatchState(map))
-  const winner = computed(() => getWinner(map, matchState.planetStates))
+  const freshState = createMatchState(currentMap.value)
+
+  const matchState = reactive({
+    planetStates: freshState.planetStates,
+    fleets: freshState.fleets,
+  })
+
+  const winner = computed(() =>
+    getWinner(currentMap.value, matchState.planetStates)
+  )
+
   const playerSelections = reactive({
     1: null,
     2: null,
@@ -34,17 +44,37 @@ export function useGame() {
   const lastFrameTime = ref(0)
   let animationFrameId = 0
 
-  /**
-   * Reset the current match to its initial state.
-   */
-  function resetGame() {
-    const freshState = createMatchState(map)
-
-    matchState.planetStates = freshState.planetStates
-    matchState.fleets = freshState.fleets
+  function applyFreshState(map) {
+    const nextState = createMatchState(map)
+    matchState.planetStates = nextState.planetStates
+    matchState.fleets = nextState.fleets
 
     playerSelections[1] = null
     playerSelections[2] = null
+  }
+
+  /**
+   * Reset the current match using the current map.
+   */
+  function resetGame() {
+    applyFreshState(currentMap.value)
+
+    if (!running.value) {
+      start()
+    }
+  }
+
+  /**
+   * Change to a new map and create a fresh match from it.
+   *
+   * @param {object} nextMap
+   */
+  function setMap(nextMap) {
+    if (!nextMap) return
+
+    currentMap.value = nextMap
+    applyFreshState(nextMap)
+
     if (!running.value) {
       start()
     }
@@ -65,11 +95,18 @@ export function useGame() {
     const dtSeconds = Math.max(0, (nowMs - lastFrameTime.value) / 1000)
     lastFrameTime.value = nowMs
 
-    stepGame(map, matchState.planetStates, matchState.fleets, dtSeconds)
+    stepGame(
+      currentMap.value,
+      matchState.planetStates,
+      matchState.fleets,
+      dtSeconds
+    )
+
     if (winner.value !== 0) {
       stop()
       return
     }
+
     animationFrameId = requestAnimationFrame(frame)
   }
 
@@ -100,8 +137,6 @@ export function useGame() {
   /**
    * Toggle a player's selected source planet.
    *
-   * This is intentionally simple for now.
-   *
    * @param {number} playerId
    * @param {string | null} planetId
    */
@@ -121,8 +156,6 @@ export function useGame() {
   /**
    * Try to send a fleet from the selected source to a destination.
    *
-   * If successful, clear the selection.
-   *
    * @param {number} playerId
    * @param {string} toId
    * @returns {boolean}
@@ -132,7 +165,7 @@ export function useGame() {
     if (!fromId) return false
 
     const success = sendFleet(
-      map,
+      currentMap.value,
       matchState.planetStates,
       matchState.fleets,
       playerId,
@@ -140,44 +173,35 @@ export function useGame() {
       toId
     )
 
-
-    // clear selection (commented out, so keep selection)
-    /*if (success) {
-      playerSelections[playerId] = null
-    } */
-
     return success
   }
 
-/**
- * Retreat the attacking side from a selected battle planet.
- *
- * If successful, clear the selection.
- *
- * @param {number} playerId
- * @param {string} toId
- * @returns {boolean}
- */
-function retreatSelectedBattle(playerId, toId) {
-  const fromId = playerSelections[playerId]
-  if (!fromId) return false
+  /**
+   * Retreat the attacking side from a selected battle planet.
+   *
+   * @param {number} playerId
+   * @param {string} toId
+   * @returns {boolean}
+   */
+  function retreatSelectedBattle(playerId, toId) {
+    const fromId = playerSelections[playerId]
+    if (!fromId) return false
 
-  const success = retreatBattle(
-    map,
-    matchState.planetStates,
-    matchState.fleets,
-    playerId,
-    fromId,
-    toId
-  )
+    const success = retreatBattle(
+      currentMap.value,
+      matchState.planetStates,
+      matchState.fleets,
+      playerId,
+      fromId,
+      toId
+    )
 
-  
-  if (success) {
-    playerSelections[playerId] = null
+    if (success) {
+      playerSelections[playerId] = null
+    }
+
+    return success
   }
-
-  return success
-}
 
   /**
    * Set a planet's mode for a player.
@@ -200,11 +224,11 @@ function retreatSelectedBattle(playerId, toId) {
   )
 
   const player1PlanetButtons = computed(() =>
-    getPlanetButtonsForPlayer(map, matchState.planetStates, 1)
+    getPlanetButtonsForPlayer(currentMap.value, matchState.planetStates, 1)
   )
 
   const player2PlanetButtons = computed(() =>
-    getPlanetButtonsForPlayer(map, matchState.planetStates, 2)
+    getPlanetButtonsForPlayer(currentMap.value, matchState.planetStates, 2)
   )
 
   onMounted(() => {
@@ -216,7 +240,7 @@ function retreatSelectedBattle(playerId, toId) {
   })
 
   return {
-    map,
+    map: computed(() => currentMap.value),
     matchState,
 
     planetStates: computed(() => matchState.planetStates),
@@ -228,6 +252,7 @@ function retreatSelectedBattle(playerId, toId) {
     start,
     stop,
     resetGame,
+    setMap,
     winner,
 
     setPlayerSelection,
