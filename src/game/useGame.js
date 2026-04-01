@@ -215,13 +215,13 @@ export function useGame(initialMap) {
     return setPlanetMode(matchState.planetStates, playerId, planetId, mode)
   }
 
-  const player1Stats = computed(() =>
-    getPlayerStats(matchState.planetStates, 1)
-  )
+const player1Stats = computed(() =>
+  getPlayerStats(currentMap.value, matchState.planetStates, matchState.fleets, 1)
+)
 
-  const player2Stats = computed(() =>
-    getPlayerStats(matchState.planetStates, 2)
-  )
+const player2Stats = computed(() =>
+  getPlayerStats(currentMap.value, matchState.planetStates, matchState.fleets, 2)
+)
 
   const player1PlanetButtons = computed(() =>
     getPlanetButtonsForPlayer(currentMap.value, matchState.planetStates, 1)

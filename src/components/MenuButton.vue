@@ -9,6 +9,7 @@
     <div v-if="open" class="menu-panel card">
       <button class="menu-item" @click="$emit('new-game')">New game</button>
       <button class="menu-item" @click="$emit('restart')">Restart</button>
+      <button class="menu-item" @click="$emit('end-game')">End game</button>
       <button class="menu-item" @click="$emit('help')">Help</button>
     </div>
   </div>
@@ -19,5 +20,5 @@ defineProps({
   open: { type: Boolean, default: false },
 })
 
-defineEmits(['toggle', 'new-game', 'restart', 'help'])
+defineEmits(['toggle', 'new-game', 'restart', 'end-game', 'help'])
 </script>

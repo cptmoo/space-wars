@@ -32,6 +32,9 @@ body {
 button {
   font: inherit;
   color: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .app-shell {
@@ -50,16 +53,13 @@ button {
 /* =========================
    console layout
    ========================= */
-/* =========================
-   console layout
-   ========================= */
 
 .player-console {
-  margin: 0.35rem;
-  padding: 0.45rem;
+  margin: 0.25rem;
+  padding: 0.3rem;
   display: grid;
   grid-template-rows: auto 1fr;
-  row-gap: 0.45rem;
+  row-gap: 0.3rem;
   align-items: stretch;
 }
 
@@ -78,7 +78,7 @@ button {
 .console-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: 0.7rem;
+  column-gap: 0.5rem;
   align-items: start;
 }
 
@@ -87,35 +87,39 @@ button {
 }
 
 .console-title {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.03em;
 }
 
 .console-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--line);
 }
 
+
+
 .console-status {
   display: grid;
-  grid-template-columns: repeat(3, minmax(2.8rem, auto));
-  gap: 0.5rem;
+  grid-template-columns: repeat(3, minmax(4.2rem, 1fr));
+  gap: 0.4rem;
   align-items: start;
-  justify-content: end;
+  justify-content: stretch;
+  width: min(15rem, 100%);
 }
 
 .status-item {
   display: grid;
   grid-template-rows: auto auto;
-  gap: 0.08rem;
+  gap: 0.05rem;
   justify-items: center;
   text-align: center;
+  min-width: 0;
 }
 
 .status-label {
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   line-height: 1;
   color: var(--muted);
   text-transform: uppercase;
@@ -123,11 +127,32 @@ button {
 }
 
 .status-value {
-  font-size: 0.88rem;
+  font-size: 1rem;
   line-height: 1;
   font-weight: 700;
   color: var(--line);
 }
+
+.status-delta {
+  font-size: 0.85em;   /* relative to main number */
+  margin-left: 0.15rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-delta.positive {
+  color: var(--p1);
+}
+
+.status-delta.negative {
+  color: #ff4d4d;
+}
+
+.status-delta.neutral {
+  color: var(--muted);
+}
+
+
 
 /* =========================
    console controls row
@@ -136,24 +161,25 @@ button {
 .console-controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: 0.55rem;
+  column-gap: 0.35rem;
   align-items: stretch;
   min-height: 0;
 }
 
 .planet-grid {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.22rem;
   align-items: stretch;
   min-width: 0;
   min-height: 0;
+  height: 100%;
 }
 
 .console-mode-stack {
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 0.35rem;
-  width: 3rem;
+  gap: 0.22rem;
+  width: 2.9rem;
   align-self: stretch;
 }
 
@@ -181,13 +207,13 @@ button {
 }
 
 /* =========================
-   console button grid
+   console buttons
    ========================= */
 
 .console-btn,
 .menu-item {
-  min-width: 2.5rem;
-  min-height: 2.2rem;
+  min-width: 0;
+  min-height: 0;
   border: 2px solid var(--line);
   background: #000;
   cursor: pointer;
@@ -198,25 +224,25 @@ button {
   height: 100%;
   display: grid;
   place-items: center;
-  gap: 0.08rem;
-  padding: 0.3rem 0.2rem;
+  gap: 0.1rem;              /* ↑ more vertical breathing */
+  padding: 0.48rem 0.14rem; /* ↑ taller */
+  touch-action: manipulation;
 }
 
 .planet-btn .planet-btn-label {
-  font-size: 0.95rem;
+  font-size: clamp(0.82rem, 2.2vw, 1rem);
   font-weight: 700;
   line-height: 1;
 }
 
 .planet-btn .planet-btn-count {
-  font-size: 0.72rem;
+  font-size: clamp(0.62rem, 1.7vw, 0.78rem);
   line-height: 1;
   opacity: 0.9;
 }
 
-
 /* =========================
-   action states (interaction)
+   planet button states
    ========================= */
 
 .planet-btn.action-disabled {
@@ -255,7 +281,7 @@ button {
 }
 
 /* =========================
-   selected (player glow)
+   selected glow
    ========================= */
 
 .player-1 .planet-btn.selected {
@@ -280,10 +306,7 @@ button {
 
 .player-1 .planet-btn.selected,
 .player-1 .planet-btn.selected .planet-btn-label,
-.player-1 .planet-btn.selected .planet-btn-count {
-  color: #000;
-}
-
+.player-1 .planet-btn.selected .planet-btn-count,
 .player-2 .planet-btn.selected,
 .player-2 .planet-btn.selected .planet-btn-label,
 .player-2 .planet-btn.selected .planet-btn-count {
@@ -291,7 +314,7 @@ button {
 }
 
 /* =========================
-   perspective (what the planet IS)
+   planet ownership perspective
    ========================= */
 
 .planet-btn.perspective-home,
@@ -330,6 +353,7 @@ button {
   color: var(--neutral);
   border-color: var(--neutral);
 }
+
 /* =========================
    battle state
    ========================= */
@@ -349,22 +373,21 @@ button {
 
 .board-stage {
   min-height: 0;
-  padding: 0.35rem;
+  padding: 0.12rem;
   display: flex;
   align-items: center;
-  justify-content: center;  
+  justify-content: center;
 }
 
 .board-wrap {
   position: relative;
+  width: 100%;
   height: 100%;
   min-height: 100%;
   overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;  
 }
 
 .game-board {
@@ -378,7 +401,7 @@ button {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 48vh;
+  min-height: 45vh;
   background: #000;
   -webkit-tap-highlight-color: transparent;
 }
@@ -388,7 +411,28 @@ button {
 .game-board,
 .board-svg,
 .board-svg text,
-.board-svg tspan {
+.board-svg tspan,
+.console-title,
+.console-subtitle,
+.status-label,
+.status-value,
+.planet-btn,
+.planet-btn .planet-btn-label,
+.planet-btn .planet-btn-count,
+.mode-btn,
+.menu-trigger,
+.menu-item,
+.help-panel,
+.win-panel,
+.new-game-title,
+.new-game-top-btn,
+.new-game-close-btn,
+.new-game-map-btn,
+.new-game-section-label,
+.setting-value-btn,
+.stepper-btn,
+.stepper-value,
+.map-scroll-btn {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -396,7 +440,7 @@ button {
 
 .menu-wrap {
   position: absolute;
-  left: -0.0rem;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
   z-index: 20;
@@ -434,13 +478,9 @@ button {
 }
 
 .menu-item {
-  min-width: 2.5rem;
   min-height: 2.2rem;
-  border: 2px solid var(--line);
-  background: #000;
   text-align: left;
   padding: 0.55rem 0.7rem;
-  cursor: pointer;
 }
 
 .help-panel {
@@ -545,7 +585,6 @@ button {
   color: var(--p2);
 }
 
-
 /* =========================
    battle indicators
    ========================= */
@@ -572,26 +611,10 @@ button {
   color: var(--p2);
 }
 
-
 /* =========================
-   larger screens
+   winner panel
    ========================= */
 
-@media (min-width: 700px) {
-  .app-shell {
-    max-width: 42rem;
-    margin: 0 auto;
-  }
-
-  .board-svg {
-    min-height: 34rem;
-  }
-}
-
-
-/* =========================
-   winner planel
-   ========================= */
 .win-panel {
   position: absolute;
   left: 50%;
@@ -669,7 +692,8 @@ button {
 .new-game-map-btn:disabled,
 .setting-value-btn:disabled,
 .stepper-btn:disabled,
-.map-scroll-btn:disabled {
+.map-scroll-btn:disabled,
+.new-game-revert-btn:disabled {
   opacity: 0.35;
   cursor: default;
 }
@@ -759,7 +783,7 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 2.2rem;
   gap: 0.35rem;
-  min-height: 0;
+  min-height: 11rem;
 }
 
 .new-game-map-list {
@@ -771,12 +795,6 @@ button {
   max-height: 100%;
   overflow-y: auto;
   padding-right: 0.1rem;
-}
-
-.new-game-map-list-wrap {
-  min-height: 11rem;
-}
-.new-game-map-list {
   scrollbar-width: thin;
   scrollbar-color: var(--line) #000;
 }
@@ -792,6 +810,7 @@ button {
 .new-game-map-list::-webkit-scrollbar-thumb {
   background: var(--line);
 }
+
 .new-game-map-scroll {
   display: grid;
   grid-template-rows: 1fr 1fr;
@@ -927,6 +946,7 @@ button {
   padding: 0 0.3rem;
   font-variant-numeric: tabular-nums;
 }
+
 .new-game-revert-btn {
   border: 2px solid var(--line);
   background: #000;
@@ -938,14 +958,18 @@ button {
   cursor: pointer;
 }
 
-.new-game-revert-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
+/* =========================
+   larger screens
+   ========================= */
 
 @media (min-width: 700px) {
+  .app-shell,
   .new-game-screen {
     max-width: 42rem;
     margin: 0 auto;
+  }
+
+  .board-svg {
+    min-height: 34rem;
   }
 }

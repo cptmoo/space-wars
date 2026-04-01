@@ -8,6 +8,18 @@
     @close="handleCloseNewGame"
   />
 
+  <div v-else-if="gamePhase === 'stats'" class="app-shell">
+    <main class="board-stage">
+      <div class="board-wrap">
+        <div class="win-panel card">
+          <h2>Game ended</h2>
+          <p>Stats screen coming next.</p>
+          <button class="menu-item" @click="handleReturnToNewGame">OK</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
   <div v-else class="app-shell">
     <PlayerConsole
       class="console-top"
@@ -18,6 +30,7 @@
       :stats="playerStats(2)"
       mirrored
       @planet-press="handleConsolePlanetPress(2, $event)"
+      @planet-long-press="handleConsolePlanetLongPress(2, $event)"
       @set-mode="({ planetId, mode }) => setPlanetMode(2, planetId, mode)"
     />
 
@@ -29,13 +42,14 @@
           :fleets="fleets"
         />
 
-        <MenuButton
-          :open="menuOpen"
-          @toggle="menuOpen = !menuOpen"
-          @new-game="handleOpenNewGame"
-          @restart="handleResetGame"
-          @help="showHelp = !showHelp"
-        />
+      <MenuButton
+        :open="menuOpen"
+        @toggle="handleToggleMenu"
+        @new-game="handleOpenNewGame"
+        @restart="handleResetGame"
+        @end-game="handleEndGame"
+        @help="handleToggleHelp"
+      />
 
         <div v-if="showHelp" class="help-panel card">
           <h2>How this prototype works</h2>
@@ -62,6 +76,7 @@
       :planet-states="planetStates"
       :stats="playerStats(1)"
       @planet-press="handleConsolePlanetPress(1, $event)"
+      @planet-long-press="handleConsolePlanetLongPress(1, $event)"
       @set-mode="({ planetId, mode }) => setPlanetMode(1, planetId, mode)"
     />
   </div>
@@ -145,12 +160,21 @@ function winnerName() {
 }
 
 function playerStats(playerId) {
-  const base = playerId === 1 ? player1Stats.value : player2Stats.value
+  const mine = playerId === 1 ? player1Stats.value : player2Stats.value
+  const opp = playerId === 1 ? player2Stats.value : player1Stats.value
 
   return {
-    totalShips: Math.round(base.ships),
-    totalLevels: Math.round(base.levels),
-    buildPer10s: buildPer10sForPlayer(playerId),
+    totalShips: mine.ships,
+    totalLevels: mine.levels,
+    totalPlanets: mine.planets,
+    buildPer10s: mine.buildPer10s,
+    buildPlanets: mine.buildPlanets,
+    upgradePlanets: mine.upgradePlanets,
+    averageLevel: mine.averageLevel,
+
+    shipsDelta: mine.ships - opp.ships,
+    buildDelta: mine.buildPer10s - opp.buildPer10s,
+    levelsDelta: mine.levels - opp.levels,
   }
 }
 
@@ -249,6 +273,15 @@ function handleConsolePlanetPress(playerId, planetId) {
   sendSelectedFleet(playerId, planetId)
 }
 
+function handleConsolePlanetLongPress(playerId, planetId) {
+  if (!canSelectActionSource(playerId, planetId)) {
+    return
+  }
+
+  setPlayerSelection(playerId, planetId)
+}
+
+
 function setPlanetMode(playerId, planetId, mode) {
   setPlanetModeForPlayer(playerId, planetId, mode)
 }
@@ -272,6 +305,8 @@ function handleResetGame() {
   resetGame()
   menuOpen.value = false
   showHelp.value = false
+  gamePhase.value = 'playing'
+  start()
 }
 
 function buildRuntimeMap(baseMap, settings) {
@@ -345,6 +380,29 @@ function handleReturnToNewGame() {
   gamePhase.value = 'new-game'
 }
 
+function handleToggleMenu() {
+  menuOpen.value = !menuOpen.value
 
+  if (menuOpen.value) {
+    stop()
+  } else if (gamePhase.value === 'playing' && winner.value === 0 && !showHelp.value) {
+    start()
+  }
+}
+
+function handleToggleHelp() {
+  showHelp.value = !showHelp.value
+  menuOpen.value = false
+}
+
+function handleEndGame() {
+  stop()
+  menuOpen.value = false
+  showHelp.value = false
+
+  // For now, use the existing win panel path.
+  // Later this will switch to the dedicated stats screen.
+  gamePhase.value = 'stats'
+}
 
 </script>

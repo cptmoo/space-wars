@@ -2,6 +2,7 @@ import {
   countOwnedLevels,
   countOwnedPlanets,
   countOwnedShips,
+  getBuildRate,
 } from './rules.js'
 
 /**
@@ -75,11 +76,41 @@ export function getPlanetPerspective(map, planetStates, playerId, planetId) {
  *   levels: number,
  * }}
  */
-export function getPlayerStats(planetStates, playerId) {
+export function getPlayerStats(map, planetStates, fleets, playerId) {
+  const planets = countOwnedPlanets(planetStates, playerId)
+  const planetShips = countOwnedShips(planetStates, playerId)
+  const movingShips = (fleets ?? []).reduce(
+    (total, fleet) => total + (fleet.owner === playerId ? fleet.ships : 0),
+    0
+  )
+  const ships = planetShips + movingShips
+  const levels = countOwnedLevels(planetStates, playerId)
+
+  let buildPer10s = 0
+  let buildPlanets = 0
+  let upgradePlanets = 0
+
+  for (const [planetId, planet] of Object.entries(planetStates)) {
+    if (planet.owner !== playerId) continue
+
+    if (planet.mode === 'B') {
+      buildPlanets += 1
+      buildPer10s += getBuildRate(map, planetStates, planetId) * 10
+    } else if (planet.mode === 'U') {
+      upgradePlanets += 1
+    }
+  }
+
   return {
-    planets: countOwnedPlanets(planetStates, playerId),
-    ships: countOwnedShips(planetStates, playerId),
-    levels: countOwnedLevels(planetStates, playerId),
+    planets,
+    ships,
+    planetShips,
+    movingShips,
+    levels,
+    buildPer10s,
+    buildPlanets,
+    upgradePlanets,
+    averageLevel: planets > 0 ? levels / planets : 0,
   }
 }
 
