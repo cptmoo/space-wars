@@ -3,6 +3,7 @@ import {
   canSendFleet,
   canSetPlanetMode,
   canUpgrade,
+  getBattleSpeedMultiplier,
   getBuildRate,
   getFlightTime,
   getMapRules,
@@ -312,6 +313,7 @@ export function resolveBattleOutcome(planetStates, planetId) {
  * Current rule:
  * - each side loses battleRate ships per second
  * - losses are symmetric
+ * - lopsided battles resolve faster via a capped logarithmic multiplier
  *
  * @param {object} map
  * @param {Record<string, any>} planetStates
@@ -323,8 +325,12 @@ export function updatePlanetBattle(map, planetStates, planetId, dtSeconds) {
   if (!planet?.battle) return
   if (!dtSeconds || dtSeconds <= 0) return
 
+  const defenders = planet.ships
+  const attackers = planet.battle.attackers
+
   const { battleRate } = getMapRules(map)
-  const losses = battleRate * dtSeconds
+  const battleSpeedMultiplier = getBattleSpeedMultiplier(map, attackers, defenders)
+  const losses = battleRate * battleSpeedMultiplier * dtSeconds
 
   planet.ships = Math.max(0, planet.ships - losses)
   planet.battle.attackers = Math.max(0, planet.battle.attackers - losses)

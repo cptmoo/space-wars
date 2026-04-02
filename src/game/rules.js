@@ -6,6 +6,12 @@ export const DEFAULT_RULES = {
   flightTimeFactor: 1, // [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.5, 10.0]
   capitalBonus: 1.5,  // [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.5, 10.0]
   battleRate: 2,        //[1.0, 2.0, 3.0, 4.0, 5.0, 7.5, 10.0, 12.5, 15.0, 20.0, 25.0]
+  // Battle speed scaling:
+  // multiplier = min(battleMaxMultiplier, 1 + battleRatioLogFactor * log2(ratio))
+  // where ratio = largerSide / smallerSide
+  battleRatioLogFactor: 0.35,
+  battleMaxMultiplier: 2.25,
+
 }
 
 /**
@@ -470,6 +476,42 @@ export function playerHasAnyCapitals(map, planetStates, playerId) {
   const capitalIds = getCapitalPlanetIds(map)
 
   return capitalIds.some((planetId) => planetStates[planetId]?.owner === playerId)
+}
+
+/**
+ * Return the symmetric battle speed multiplier for the current battle size ratio.
+ *
+ * Behaviour:
+ * - balanced battle => multiplier 1
+ * - more lopsided battle => faster symmetric losses
+ * - growth is logarithmic
+ * - multiplier is capped
+ *
+ * @param {object} map
+ * @param {number} attackers
+ * @param {number} defenders
+ * @returns {number}
+ */
+export function getBattleSpeedMultiplier(map, attackers, defenders) {
+  const { battleRatioLogFactor, battleMaxMultiplier } = getMapRules(map)
+
+  const a = Math.max(0, Number(attackers) || 0)
+  const d = Math.max(0, Number(defenders) || 0)
+
+  if (a <= 0 || d <= 0) {
+    return 1
+  }
+
+  const smaller = Math.min(a, d)
+  const larger = Math.max(a, d)
+  const ratio = larger / smaller
+
+  if (!Number.isFinite(ratio) || ratio <= 1) {
+    return 1
+  }
+
+  const multiplier = 1 + battleRatioLogFactor * Math.log2(ratio)
+  return Math.max(1, Math.min(battleMaxMultiplier, multiplier))
 }
 
 /**
