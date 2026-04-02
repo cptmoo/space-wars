@@ -57,6 +57,28 @@ export function createPlanetStates(map) {
 }
 
 /**
+ * Create a fresh history container for one match.
+ *
+ * snapshots are intended for later charts / end-game summaries.
+ * They are recorded at controlled intervals rather than every frame.
+ *
+ * @returns {{
+ *   elapsedSeconds: number,
+ *   snapshotIntervalSeconds: number,
+ *   snapshots: Array<any>,
+ *   winner: 0 | 1 | 2,
+ * }}
+ */
+export function createMatchHistory() {
+  return {
+    elapsedSeconds: 0,
+    snapshotIntervalSeconds: 1,
+    snapshots: [],
+    winner: 0,
+  }
+}
+
+/**
  * Create a fresh match state from a map definition.
  *
  * This is the live mutable state for one game instance.
@@ -75,11 +97,18 @@ export function createPlanetStates(map) {
  *     },
  *   }>,
  *   fleets: any[],
+ *   history: {
+ *     elapsedSeconds: number,
+ *     snapshotIntervalSeconds: number,
+ *     snapshots: Array<any>,
+ *     winner: 0 | 1 | 2,
+ *   },
  * }}
  */
 export function createMatchState(map) {
   return {
     planetStates: createPlanetStates(map),
     fleets: [],
+    history: createMatchHistory(),
   }
 }

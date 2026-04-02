@@ -5,6 +5,55 @@ import { getPlayerStats, getPlanetButtonsForPlayer } from './selectors.js'
 import { createMatchState } from './state.js'
 import { getWinner } from './rules.js'
 
+const HISTORY_SNAPSHOT_INTERVAL_SECONDS = 1
+
+/**
+ * Build one history snapshot for both players.
+ *
+ * @param {object} map
+ * @param {Record<string, any>} planetStates
+ * @param {any[]} fleets
+ * @param {number} elapsedSeconds
+ * @returns {{
+ *   t: number,
+ *   players: {
+ *     1: ReturnType<typeof getPlayerStats>,
+ *     2: ReturnType<typeof getPlayerStats>,
+ *   },
+ * }}
+ */
+function createHistorySnapshot(map, planetStates, fleets, elapsedSeconds) {
+  return {
+    t: elapsedSeconds,
+    players: {
+      1: getPlayerStats(map, planetStates, fleets, 1),
+      2: getPlayerStats(map, planetStates, fleets, 2),
+    },
+  }
+}
+
+/**
+ * Record a snapshot unless one already exists at this exact time.
+ *
+ * @param {object} history
+ * @param {object} map
+ * @param {Record<string, any>} planetStates
+ * @param {any[]} fleets
+ * @param {number} elapsedSeconds
+ */
+function recordHistorySnapshot(history, map, planetStates, fleets, elapsedSeconds) {
+  const roundedTime = Number(elapsedSeconds.toFixed(3))
+  const lastSnapshot = history.snapshots[history.snapshots.length - 1]
+
+  if (lastSnapshot && Math.abs(lastSnapshot.t - roundedTime) < 0.0005) {
+    return
+  }
+
+  history.snapshots.push(
+    createHistorySnapshot(map, planetStates, fleets, roundedTime)
+  )
+}
+
 /**
  * Main Vue bridge for the game system.
  *
@@ -29,6 +78,7 @@ export function useGame(initialMap) {
   const matchState = reactive({
     planetStates: freshState.planetStates,
     fleets: freshState.fleets,
+    history: freshState.history,
   })
 
   const winner = computed(() =>
@@ -43,14 +93,39 @@ export function useGame(initialMap) {
   const running = ref(false)
   const lastFrameTime = ref(0)
   let animationFrameId = 0
+  let historySnapshotClock = 0
+
+  function resetHistoryClock() {
+    historySnapshotClock = 0
+  }
+
+  function initialiseHistory() {
+    matchState.history.snapshotIntervalSeconds = HISTORY_SNAPSHOT_INTERVAL_SECONDS
+    matchState.history.elapsedSeconds = 0
+    matchState.history.winner = 0
+    matchState.history.snapshots = []
+
+    recordHistorySnapshot(
+      matchState.history,
+      currentMap.value,
+      matchState.planetStates,
+      matchState.fleets,
+      0
+    )
+
+    resetHistoryClock()
+  }
 
   function applyFreshState(map) {
     const nextState = createMatchState(map)
     matchState.planetStates = nextState.planetStates
     matchState.fleets = nextState.fleets
+    matchState.history = nextState.history
 
     playerSelections[1] = null
     playerSelections[2] = null
+
+    initialiseHistory()
   }
 
   /**
@@ -95,6 +170,11 @@ export function useGame(initialMap) {
     const dtSeconds = Math.max(0, (nowMs - lastFrameTime.value) / 1000)
     lastFrameTime.value = nowMs
 
+    if (dtSeconds > 0) {
+      matchState.history.elapsedSeconds += dtSeconds
+      historySnapshotClock += dtSeconds
+    }
+
     stepGame(
       currentMap.value,
       matchState.planetStates,
@@ -102,7 +182,32 @@ export function useGame(initialMap) {
       dtSeconds
     )
 
+    const snapshotInterval =
+      matchState.history.snapshotIntervalSeconds || HISTORY_SNAPSHOT_INTERVAL_SECONDS
+
+    while (historySnapshotClock >= snapshotInterval) {
+      historySnapshotClock -= snapshotInterval
+
+      recordHistorySnapshot(
+        matchState.history,
+        currentMap.value,
+        matchState.planetStates,
+        matchState.fleets,
+        matchState.history.elapsedSeconds
+      )
+    }
+
     if (winner.value !== 0) {
+      matchState.history.winner = winner.value
+
+      recordHistorySnapshot(
+        matchState.history,
+        currentMap.value,
+        matchState.planetStates,
+        matchState.fleets,
+        matchState.history.elapsedSeconds
+      )
+
       stop()
       return
     }
@@ -132,6 +237,20 @@ export function useGame(initialMap) {
       cancelAnimationFrame(animationFrameId)
       animationFrameId = 0
     }
+  }
+
+  /**
+   * Force a final history snapshot at the current time.
+   * Useful for manual end-game / stats screen transitions.
+   */
+  function captureHistoryNow() {
+    recordHistorySnapshot(
+      matchState.history,
+      currentMap.value,
+      matchState.planetStates,
+      matchState.fleets,
+      matchState.history.elapsedSeconds
+    )
   }
 
   /**
@@ -215,13 +334,13 @@ export function useGame(initialMap) {
     return setPlanetMode(matchState.planetStates, playerId, planetId, mode)
   }
 
-const player1Stats = computed(() =>
-  getPlayerStats(currentMap.value, matchState.planetStates, matchState.fleets, 1)
-)
+  const player1Stats = computed(() =>
+    getPlayerStats(currentMap.value, matchState.planetStates, matchState.fleets, 1)
+  )
 
-const player2Stats = computed(() =>
-  getPlayerStats(currentMap.value, matchState.planetStates, matchState.fleets, 2)
-)
+  const player2Stats = computed(() =>
+    getPlayerStats(currentMap.value, matchState.planetStates, matchState.fleets, 2)
+  )
 
   const player1PlanetButtons = computed(() =>
     getPlanetButtonsForPlayer(currentMap.value, matchState.planetStates, 1)
@@ -231,7 +350,12 @@ const player2Stats = computed(() =>
     getPlanetButtonsForPlayer(currentMap.value, matchState.planetStates, 2)
   )
 
+  const elapsedSeconds = computed(() => matchState.history.elapsedSeconds)
+  const matchHistory = computed(() => matchState.history)
+  const historySnapshots = computed(() => matchState.history.snapshots)
+
   onMounted(() => {
+    initialiseHistory()
     start()
   })
 
@@ -245,6 +369,9 @@ const player2Stats = computed(() =>
 
     planetStates: computed(() => matchState.planetStates),
     fleets: computed(() => matchState.fleets),
+    matchHistory,
+    historySnapshots,
+    elapsedSeconds,
 
     playerSelections,
 
@@ -254,6 +381,7 @@ const player2Stats = computed(() =>
     resetGame,
     setMap,
     winner,
+    captureHistoryNow,
 
     setPlayerSelection,
     clearPlayerSelection,

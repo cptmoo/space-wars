@@ -8,17 +8,17 @@
     @close="handleCloseNewGame"
   />
 
-  <div v-else-if="gamePhase === 'stats'" class="app-shell">
-    <main class="board-stage">
-      <div class="board-wrap">
-        <div class="win-panel card">
-          <h2>Game ended</h2>
-          <p>Stats screen coming next.</p>
-          <button class="menu-item" @click="handleReturnToNewGame">OK</button>
-        </div>
-      </div>
-    </main>
-  </div>
+  <StatsScreen
+    v-else-if="gamePhase === 'stats'"
+    :players="players"
+    :winner-id="winner"
+    :map-name="map.name"
+    :win-type="map.winCondition?.type ?? 'elimination'"
+    :match-history="matchHistory"
+    :player1-final-stats="player1Stats"
+    :player2-final-stats="player2Stats"
+    @new-game="handleReturnToNewGame"
+  />
 
   <div v-else class="app-shell">
     <PlayerConsole
@@ -59,12 +59,11 @@
           <p>Press the selected planet again to cancel.</p>
           <p>B builds ships. U upgrades the planet.</p>
         </div>
-
-        <div v-if="winner !== 0" class="win-panel card">
+    <!--    <div v-if="winner !== 0" class="win-panel card">
           <h2>{{ winnerName() }} wins</h2>
           <p>Win condition: {{ map.winCondition?.type ?? 'elimination' }}</p>
-          <button class="menu-item" @click="handleReturnToNewGame">OK</button>
-        </div>
+          <button class="menu-item" @click="handleEndGame">Stats</button>
+        </div>-->
       </div>
     </main>
 
@@ -83,12 +82,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import GameBoard from './components/GameBoard.vue'
 import MenuButton from './components/MenuButton.vue'
 import PlayerConsole from './components/PlayerConsole.vue'
 import NewGameScreen from './components/NewGameScreen.vue'
+import StatsScreen from './components/StatsScreen.vue'
 import { MAPS } from './game/maps/index.js'
 
 import {
@@ -134,7 +134,12 @@ const {
   player1PlanetButtons,
   player2PlanetButtons,
   retreatSelectedBattle,
+  matchHistory,
+  captureHistoryNow,
 } = useGame(MAPS[0])
+
+const player1StatsForScreen = computed(() => player1Stats.value)
+const player2StatsForScreen = computed(() => player2Stats.value)
 
 function buildPer10sForPlayer(playerId) {
   let total = 0
@@ -395,14 +400,20 @@ function handleToggleHelp() {
   menuOpen.value = false
 }
 
+watch(winner, (nextWinner, previousWinner) => {
+  if (gamePhase.value !== 'playing') return
+  if (previousWinner !== 0) return
+  if (nextWinner === 0) return
+
+  handleEndGame()
+})
+
 function handleEndGame() {
   stop()
+  captureHistoryNow()
   menuOpen.value = false
   showHelp.value = false
-
-  // For now, use the existing win panel path.
-  // Later this will switch to the dedicated stats screen.
+  hasPausedGame.value = false
   gamePhase.value = 'stats'
 }
-
 </script>

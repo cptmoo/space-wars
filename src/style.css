@@ -134,7 +134,7 @@ button {
 }
 
 .status-delta {
-  font-size: 0.85em;   /* relative to main number */
+  font-size: 0.75em;   /* relative to main number */
   margin-left: 0.15rem;
   font-weight: 700;
   white-space: nowrap;
@@ -971,5 +971,248 @@ button {
 
   .board-svg {
     min-height: 34rem;
+  }
+}
+
+
+/* =========================
+   stats screen
+   ========================= */
+
+.stats-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0.35rem;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 0.35rem;
+  background: #000;
+}
+
+.stats-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.8rem;
+  gap: 0.35rem;
+}
+
+.stats-title,
+.stats-top-btn,
+.stats-player-card,
+.stats-chart-panel {
+  background: #000;
+  border: 2px solid var(--line);
+}
+
+.stats-title {
+  padding: 0.5rem 0.7rem;
+}
+
+.stats-title-main {
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.stats-title-sub {
+  margin-top: 0.18rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.stats-top-btn {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.stats-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.stats-player-card {
+  padding: 0.45rem;
+}
+
+.stats-player-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+
+.stats-player-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+}
+
+.stats-kpi {
+  border: 2px solid currentColor;
+  padding: 0.32rem 0.35rem;
+  background: #050505;
+}
+
+.stats-kpi-label {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.1rem;
+}
+
+.stats-kpi-value {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stats-chart-panel {
+  min-height: 0;
+  padding: 0.45rem;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.4rem;
+}
+
+.stats-chart-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.stats-multi-chart {
+  min-height: 0;
+  border: 2px solid var(--line);
+  background: #050505;
+  padding: 0.28rem;
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+
+.stats-mini-chart {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr); /* narrower */
+  gap: 0.28rem;
+  align-items: stretch;
+}
+
+/* label container */
+.stats-mini-chart-label {
+  border: 2px solid var(--line);
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* rotated text */
+.stats-mini-chart-label-text {
+  display: inline-block;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.stats-chart-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 5.1rem;
+  background: #000;
+  border: 2px solid var(--line);
+}
+
+.stats-chart-bg {
+  fill: #000;
+}
+
+.stats-grid-line {
+  stroke: #333;
+  stroke-width: 0.18;
+}
+
+.stats-axis-line {
+  stroke: var(--line);
+  stroke-width: 0.28;
+}
+
+.stats-axis-label {
+  fill: var(--muted);
+  font-size: 2.3px;
+}
+
+.stats-axis-label-y {
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.stats-axis-label-centre {
+  text-anchor: middle;
+}
+
+.stats-axis-label-right {
+  text-anchor: end;
+}
+
+.stats-line {
+  fill: none;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stats-line-p1 {
+  stroke: var(--p1);
+}
+
+.stats-line-p2 {
+  stroke: var(--p2);
+}
+
+.stats-legend {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stats-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.stats-legend-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.stats-legend-dot-p1 {
+  background: var(--p1);
+}
+
+.stats-legend-dot-p2 {
+  background: var(--p2);
+}
+
+@media (min-width: 700px) {
+  .stats-screen {
+    max-width: 42rem;
+    margin: 0 auto;
+  }
+
+  .stats-chart-svg {
+    min-height: 6rem;
   }
 }
